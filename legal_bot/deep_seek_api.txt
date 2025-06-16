@@ -1,0 +1,83 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from openai import OpenAI  # Using OpenAI-compatible client; works if DeepSeek is OpenAI-compatible
+from .env import load_dotenv
+import os
+
+# Load variables from .env file
+load_dotenv()
+
+# Get API key from environment
+api_key = os.getenv("DEEPSEEK_API_KEY")
+if not api_key:
+    raise RuntimeError("DEEPSEEK_API_KEY not found in environment variables.")
+
+# Initialize DeepSeek-compatible client
+client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+
+app = FastAPI()
+
+class ScoringRequest(BaseModel):
+    query: str
+    response_1: str
+    response_2: str
+    response_3: str
+
+@app.post("/deepseek-score")
+def deepseek_score(data: ScoringRequest):
+    prompt = f"""
+You are a senior legal expert evaluating AI-generated legal responses.
+
+You will be shown a legal query and 3 responses from AI systems. For each response, assess the following six criteria using a score from 1 (Very Poor) to 4 (Excellent) and include a short explanation per criterion.
+
+### Scoring Criteria:
+1. Factual Correctness – Is the law cited or interpretation accurate?
+2. Relevance – Does the response address the legal question?
+3. Completeness – Are all relevant legal aspects covered?
+4. Clarity – Is it understandable to a layperson or legal professional?
+5. Jurisdiction Awareness – Is it applicable to the correct legal system (e.g., Ghanaian law)?
+6. Caution/Disclaimer – Does it advise consulting a lawyer or indicate uncertainty where appropriate?
+
+---
+
+Query: {data.query}
+
+Response 1: {data.response_1}
+
+Response 2: {data.response_2}
+
+Response 3: {data.response_3}
+
+Please return your output in this structured format (including short explanations):
+
+Response 1:
+- Factual Correctness: [score] - [explanation]
+- Relevance: [score] - [explanation]
+- Completeness: [score] - [explanation]
+- Clarity: [score] - [explanation]
+- Jurisdiction Awareness: [score] - [explanation]
+- Caution/Disclaimer: [score] - [explanation]
+
+Repeat the same structure for Response 2 and Response 3.
+"""
+
+    try:
+        completion = client.chat.completions.create(
+            model="deepseek-chat",  # Use the correct DeepSeek model name here
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2,
+            max_tokens=1500
+        )
+
+        # Use dot notation instead of dictionary access
+        result = completion.choices[0].message.content
+        return {"deepseek_scoring": result.strip()}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DeepSeek Scoring Error: {str(e)}")
+    
+
+
+    
