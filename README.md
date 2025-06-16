@@ -70,3 +70,4 @@ Never commit your API keys or secrets to version control. The `.env` file is lis
 
 - this model has to be connected to the 3 AI platfomrs (GPT, Gemini, Meta ai)
 - the model is to evaluate the responses of the AI's by displaying the score and rational.
+# legal_chat_bot
