@@ -31,3 +31,5 @@ build/
 coverage/
 .coverage
 db.sqlite3
+FLAN-T5_model/model.safetensors
+Archive.zip
